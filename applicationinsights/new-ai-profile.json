@@ -1,0 +1,77 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "profile-name": {
+            "type": "string",
+            "metadata": {
+                "description": "The name for the new application insights profile"
+            }
+        },
+        "app-name": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the applicatio where the application insights profile belongs to."
+            }
+        },
+        "app-serviceplan-name": {
+            "type": "string",
+            "metadata": {
+                "description": "description"
+            }
+        }
+    },
+    "variables": {},
+    "resources": [        
+        {
+            "name": "[concat('CPU-high - Serviceplan ', parameters('app-serviceplan-name'))]",
+            "type": "Microsoft.Insights/alertrules",
+            "apiVersion": "2016-03-01",
+            "location": "westeurope",
+            "tags": {
+                "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/serverfarms/', parameters('app-serviceplan-name'))]": "Resource",
+                "displayName": "[concat('CPU-high - Serviceplan ', parameters('app-serviceplan-name'))]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', parameters('app-serviceplan-name'))]"
+            ],
+            "properties": {
+                "name": "[concat('CPU-high - Serviceplan ', parameters('app-serviceplan-name'))]",
+                "description": "[concat('The average CPU is high across all the instances of', parameters('app-serviceplan-name'))]",
+                "isEnabled": false,
+                "condition": {
+                    "odata.type": "Microsoft.Azure.Management.Insights.Models.ThresholdRuleCondition",
+                    "dataSource": {
+                        "odata.type": "Microsoft.Azure.Management.Insights.Models.RuleMetricDataSource",
+                        "resourceUri": "[concat(resourceGroup().id, '/providers/Microsoft.Web/serverfarms/', parameters('app-serviceplan-name'))]",
+                        "metricName": "CpuPercentage"
+                    },
+                    "operator": "GreaterThan",
+                    "threshold": 80,
+                    "windowSize": "PT15M"
+                },
+                "action": {
+                  "actionGroupId": "[resourceId('Microsoft.Insights/actiongroups', 'My Actiongroup')]"
+                }
+            }
+        },
+        {
+            "name": "[parameters('profile-name')]",
+            "type": "Microsoft.Insights/components",
+            "apiVersion": "2015-05-01",
+            "location": "westeurope",
+            "kind": "web",
+            "tags": {
+                "displayName": "appInsights1 Component for webApp1"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('app-name'))]"
+            ],
+            "properties": {
+                "applicationId": "parameters('app-name')",
+                "application_Type": "web"
+            }
+        }
+    ],
+    "outputs": {}
+}
